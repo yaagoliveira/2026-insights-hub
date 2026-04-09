@@ -39,9 +39,12 @@ const EvolucaoChart = ({ mesFiltro, categoriaFiltro }: EvolucaoChartProps) => {
             contentStyle={{ background: "hsl(220 18% 10%)", border: "1px solid hsl(220 15% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }}
             formatter={(value: number, name: string) => [formatCurrency(value), name === "mensal" ? "Mensal" : "Acumulado"]}
           />
-          <Legend formatter={(value) => (value === "mensal" ? "Mensal" : "Acumulado")} />
-          <Line type="monotone" dataKey="mensal" stroke="hsl(200 70% 50%)" strokeWidth={2} dot={{ r: 3 }} />
-          <Line type="monotone" dataKey="acumulado" stroke="hsl(160 60% 45%)" strokeWidth={2} dot={{ r: 3 }} />
+          <Legend
+            formatter={(value) => (value === "mensal" ? "Gasto Mensal" : "Acumulado no Ano")}
+            wrapperStyle={{ fontSize: 12 }}
+          />
+          <Line type="monotone" dataKey="mensal" stroke="hsl(200 70% 50%)" strokeWidth={2} dot={{ r: 3 }} name="mensal" />
+          <Line type="monotone" dataKey="acumulado" stroke="hsl(160 60% 45%)" strokeWidth={2} dot={{ r: 3 }} name="acumulado" />
         </LineChart>
       </ResponsiveContainer>
     </div>
