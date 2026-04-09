@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { despesas, formatCurrency } from "@/data/financeiro2026";
 
 const COLORS = [
@@ -8,6 +8,22 @@ const COLORS = [
   "hsl(220 50% 55%)",
 ];
 
+const RADIAN = Math.PI / 180;
+
+const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent < 0.04) return null;
+
+  return (
+    <text x={x} y={y} fill="hsl(210 20% 95%)" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const CategoriasPieChart = () => {
   const pagas = despesas.filter((d) => d.pago);
   const catMap = new Map<string, number>();
@@ -16,38 +32,50 @@ const CategoriasPieChart = () => {
     .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
     .sort((a, b) => b.value - a.value);
 
-  const renderLegend = (props: any) => {
-    const { payload } = props;
-    return (
-      <div className="flex flex-wrap gap-x-3 gap-y-1.5 justify-center mt-2">
-        {payload?.map((entry: any, i: number) => (
-          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: entry.color }} />
-            <span>{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="text-lg font-semibold text-foreground mb-1">Gastos por Categoria</h3>
       <p className="text-sm text-muted-foreground mb-4">Distribuição do que já foi pago</p>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={260}>
         <PieChart>
-          <Pie data={data} cx="50%" cy="45%" innerRadius={55} outerRadius={95} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={50}
+            outerRadius={100}
+            paddingAngle={2}
+            dataKey="value"
+            label={renderCustomLabel}
+            labelLine={false}
+          >
             {data.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{ background: "hsl(220 18% 10%)", border: "1px solid hsl(220 15% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }}
-            formatter={(value: number) => [formatCurrency(value), ""]}
+            contentStyle={{
+              background: "hsl(220 18% 10%)",
+              border: "1px solid hsl(220 15% 18%)",
+              borderRadius: 8,
+              color: "hsl(210 20% 92%)",
+            }}
+            formatter={(value: number, name: string) => [
+              <span style={{ color: "hsl(160 60% 45%)" }}>{formatCurrency(value)}</span>,
+              <span style={{ color: "hsl(210 20% 80%)" }}>{name}</span>,
+            ]}
           />
-          <Legend content={renderLegend} />
         </PieChart>
       </ResponsiveContainer>
+      <div className="flex flex-wrap gap-x-3 gap-y-1.5 justify-center mt-3">
+        {data.map((item, i) => (
+          <div key={item.name} className="flex items-center gap-1.5 text-xs">
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+            <span className="text-muted-foreground">{item.name}</span>
+            <span style={{ color: COLORS[i % COLORS.length] }} className="font-medium">{formatCurrency(item.value)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
