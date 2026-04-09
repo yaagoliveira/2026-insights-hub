@@ -29,11 +29,9 @@ const Index = () => {
   const totalDespesas = despesasState.reduce((s, d) => s + d.valor, 0);
   const totalPago = despesasState.filter((d) => d.pago).reduce((s, d) => s + d.valor, 0);
   const totalPendente = totalDespesas - totalPago;
+  const percPago = totalDespesas > 0 ? ((totalPago / totalDespesas) * 100).toFixed(1) : "0";
 
-  const handleTogglePago = (filteredIndex: number) => {
-    const target = despesasFiltradas[filteredIndex];
-    const realIndex = despesasState.findIndex((d) => d === target);
-    if (realIndex === -1) return;
+  const handleTogglePago = (realIndex: number) => {
     setDespesasState((prev) => {
       const next = [...prev];
       next[realIndex] = { ...next[realIndex], pago: !next[realIndex].pago };
@@ -51,18 +49,23 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Finanças 2026</h1>
-            <p className="text-xs text-muted-foreground">Painel de acompanhamento financeiro</p>
+            <h1 className="text-xl font-bold text-foreground">💰 Finanças 2026</h1>
+            <p className="text-xs text-muted-foreground">Painel de acompanhamento financeiro pessoal</p>
           </div>
-          <div className="text-xs text-muted-foreground">Atualizado em Abril 2026</div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-1.5">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              Atualizado em Abril 2026
+            </div>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Filtros */}
+        {/* Filtros globais */}
         <DashboardFilters
           mesFiltro={mesFiltro}
           setMesFiltro={setMesFiltro}
@@ -72,9 +75,9 @@ const Index = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Compras Planejadas" value={totalCompras} icon={ShoppingCart} subtitle={`${comprasState.length} itens`} />
-          <StatCard title="Total Despesas 2026" value={totalDespesas} icon={DollarSign} subtitle="Previsto + realizado" trend="up" />
-          <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle="Atualizado em tempo real" trend="down" />
+          <StatCard title="Compras Planejadas" value={totalCompras} icon={ShoppingCart} subtitle={`${comprasState.length} itens no total`} />
+          <StatCard title="Despesas 2026" value={totalDespesas} icon={DollarSign} subtitle="Previsto + realizado" trend="up" />
+          <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={`${percPago}% do total`} trend="down" />
           <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle="Restante a pagar" />
         </div>
 
