@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { despesas, meses, formatCurrency } from "@/data/financeiro2026";
 
 const DespesasMensaisChart = () => {
@@ -12,7 +12,7 @@ const DespesasMensaisChart = () => {
     return { mes: mes.slice(0, 3), total: Math.round(total * 100) / 100, pago, pendente: Math.round((total - pago) * 100) / 100 };
   });
 
-  const mesAtual = 4; // Abril
+  const mesAtual = 4;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -27,6 +27,10 @@ const DespesasMensaisChart = () => {
             contentStyle={{ background: "hsl(220 18% 10%)", border: "1px solid hsl(220 15% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }}
             formatter={(value: number) => [formatCurrency(value), ""]}
           />
+          <Legend
+            formatter={(value) => (value === "total" ? "Total" : value)}
+            wrapperStyle={{ fontSize: 12 }}
+          />
           <Bar dataKey="total" radius={[6, 6, 0, 0]} name="Total">
             {data.map((_, index) => (
               <Cell key={index} fill={index < mesAtual ? "hsl(160 60% 45%)" : "hsl(220 15% 25%)"} />
@@ -34,6 +38,16 @@ const DespesasMensaisChart = () => {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground justify-center">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded" style={{ background: "hsl(160 60% 45%)" }} />
+          <span>Meses passados</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded" style={{ background: "hsl(220 15% 25%)" }} />
+          <span>Meses futuros</span>
+        </div>
+      </div>
     </div>
   );
 };
