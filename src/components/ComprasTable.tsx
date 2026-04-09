@@ -1,13 +1,40 @@
-import { compras, formatCurrency } from "@/data/financeiro2026";
+import { Compra, formatCurrency } from "@/data/financeiro2026";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const prioridadeColor = (p: string) => {
-  if (p === "Sim") return "bg-primary/20 text-primary border-primary/30";
-  if (p === "Não") return "bg-muted text-muted-foreground border-border";
-  return "bg-accent/20 text-accent border-accent/30";
+const prazoToDate = (prazo: string): string => {
+  const lower = prazo.toLowerCase();
+  const monthMap: Record<string, string> = {
+    janeiro: "31/01/2026", fevereiro: "28/02/2026", março: "31/03/2026",
+    abril: "30/04/2026", maio: "31/05/2026", junho: "30/06/2026",
+    julho: "31/07/2026", agosto: "31/08/2026", setembro: "30/09/2026",
+    outubro: "31/10/2026", novembro: "30/11/2026", dezembro: "31/12/2026",
+  };
+  for (const [month, date] of Object.entries(monthMap)) {
+    if (lower.includes(month)) return date;
+  }
+  if (lower.includes("60 dias")) return "09/06/2026";
+  if (lower.includes("mensal")) return "Mensal";
+  return "31/12/2026";
 };
 
-const ComprasTable = () => (
+const prioridadeOptions = ["Sim", "Não", "Padrão", "Mais ou menos"] as const;
+
+const prioridadeStyle = (p: string) => {
+  switch (p) {
+    case "Sim": return "bg-primary/20 text-primary border-primary/30";
+    case "Não": return "bg-destructive/20 text-destructive border-destructive/30";
+    case "Mais ou menos": return "bg-chart-3/20 text-chart-3 border-chart-3/30";
+    default: return "bg-muted text-muted-foreground border-border";
+  }
+};
+
+interface ComprasTableProps {
+  compras: Compra[];
+  onPrioridadeChange: (index: number, value: string) => void;
+}
+
+const ComprasTable = ({ compras, onPrioridadeChange }: ComprasTableProps) => (
   <div className="rounded-xl border border-border bg-card overflow-hidden">
     <div className="p-5 border-b border-border">
       <h3 className="text-lg font-semibold text-foreground">Lista de Compras Previstas</h3>
@@ -21,6 +48,7 @@ const ComprasTable = () => (
             <th className="text-left p-3 text-muted-foreground font-medium">Item</th>
             <th className="text-right p-3 text-muted-foreground font-medium">Valor</th>
             <th className="text-left p-3 text-muted-foreground font-medium">Prazo</th>
+            <th className="text-center p-3 text-muted-foreground font-medium">Término</th>
             <th className="text-center p-3 text-muted-foreground font-medium">Prioridade</th>
           </tr>
         </thead>
@@ -32,9 +60,29 @@ const ComprasTable = () => (
               <td className="p-3 text-right text-foreground">{formatCurrency(c.total)}</td>
               <td className="p-3 text-muted-foreground">{c.prazo}</td>
               <td className="p-3 text-center">
-                <Badge variant="outline" className={prioridadeColor(c.prioridade)}>
-                  {c.prioridade}
+                <Badge variant="outline" className="text-xs font-mono">
+                  {prazoToDate(c.prazo)}
                 </Badge>
+              </td>
+              <td className="p-3 text-center">
+                <Select value={c.prioridade} onValueChange={(v) => onPrioridadeChange(i, v)}>
+                  <SelectTrigger className="h-8 w-[140px] mx-auto text-xs">
+                    <SelectValue>
+                      <Badge variant="outline" className={`${prioridadeStyle(c.prioridade)} text-xs`}>
+                        {c.prioridade}
+                      </Badge>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prioridadeOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        <Badge variant="outline" className={`${prioridadeStyle(opt)} text-xs`}>
+                          {opt}
+                        </Badge>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </td>
             </tr>
           ))}
