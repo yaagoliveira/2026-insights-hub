@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Search, Filter, X } from "lucide-react";
 import { useState, useMemo } from "react";
+import type { IndexedItem } from "@/lib/financeiro";
 
 interface DespesasTableProps {
-  despesas: Despesa[];
+  despesas: IndexedItem<Despesa>[];
   onTogglePago: (realIndex: number) => void;
 }
 
@@ -127,9 +128,8 @@ const DespesasTable = ({ despesas, onTogglePago }: DespesasTableProps) => {
               </tr>
             ) : (
               filtered.map((d) => {
-                const origIdx = despesas.indexOf(d);
                 return (
-                  <tr key={origIdx} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${d.pago ? "" : "bg-destructive/5"}`}>
+                  <tr key={d.originalIndex} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${d.pago ? "" : "bg-destructive/5"}`}>
                     <td className="p-3 text-muted-foreground">{d.mes}</td>
                     <td className="p-3 text-foreground">{d.categoria}</td>
                     <td className="p-3 text-foreground font-medium">{d.item}</td>
@@ -138,7 +138,7 @@ const DespesasTable = ({ despesas, onTogglePago }: DespesasTableProps) => {
                     </td>
                     <td className="p-3 text-right text-foreground">{formatCurrency(d.valor)}</td>
                     <td className="p-3 text-center">
-                      <Switch checked={d.pago} onCheckedChange={() => onTogglePago(origIdx)} />
+                      <Switch checked={d.pago} onCheckedChange={() => onTogglePago(d.originalIndex)} />
                     </td>
                   </tr>
                 );

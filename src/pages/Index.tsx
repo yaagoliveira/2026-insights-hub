@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package } from "lucide-react";
-import { compras as comprasInitial, despesas as despesasInitial, formatCurrency, Compra, Despesa } from "@/data/financeiro2026";
+import { compras as comprasInitial, despesas as despesasInitial, despesasRecorrentes, Compra, Despesa } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import StatCard from "@/components/StatCard";
 import ComprasTable from "@/components/ComprasTable";
@@ -11,6 +11,7 @@ import RecorrentesCard from "@/components/RecorrentesCard";
 import DashboardFilters from "@/components/DashboardFilters";
 import EvolucaoChart from "@/components/EvolucaoChart";
 import DespesasTable from "@/components/DespesasTable";
+import { collectCategorias, filterCompras, filterDespesas, filterRecorrentes, withOriginalIndex } from "@/lib/financeiro";
 
 const Index = () => {
   const [mesFiltro, setMesFiltro] = useState<number | null>(null);
@@ -18,19 +19,47 @@ const Index = () => {
   const [despesasState, setDespesasState] = useState<Despesa[]>([...despesasInitial]);
   const [comprasState, setComprasState] = useState<Compra[]>([...comprasInitial]);
 
-  const despesasFiltradas = useMemo(() => {
-    return despesasState.filter((d) => {
-      if (mesFiltro !== null && d.mesNum !== mesFiltro) return false;
-      if (categoriaFiltro && d.categoria !== categoriaFiltro) return false;
-      return true;
-    });
-  }, [despesasState, mesFiltro, categoriaFiltro]);
+  const despesasIndexadas = useMemo(() => withOriginalIndex(despesasState), [despesasState]);
+  const comprasIndexadas = useMemo(() => withOriginalIndex(comprasState), [comprasState]);
 
-  const totalCompras = useMemo(() => comprasState.reduce((s, c) => s + c.total, 0), [comprasState]);
-  const totalDespesas = useMemo(() => despesasState.reduce((s, d) => s + d.valor, 0), [despesasState]);
-  const totalPago = useMemo(() => despesasState.filter((d) => d.pago).reduce((s, d) => s + d.valor, 0), [despesasState]);
+  const despesasFiltradas = useMemo(
+    () => filterDespesas(despesasIndexadas, mesFiltro, categoriaFiltro),
+    [despesasIndexadas, mesFiltro, categoriaFiltro],
+  );
+  const comprasFiltradas = useMemo(
+    () => filterCompras(comprasIndexadas, mesFiltro, categoriaFiltro),
+    [comprasIndexadas, mesFiltro, categoriaFiltro],
+  );
+  const recorrentesFiltradas = useMemo(
+    () => filterRecorrentes(despesasRecorrentes, categoriaFiltro),
+    [categoriaFiltro],
+  );
+  const categoriasDisponiveis = useMemo(
+    () => collectCategorias(despesasState, comprasState, despesasRecorrentes),
+    [despesasState, comprasState],
+  );
+
+  const totalCompras = useMemo(() => comprasFiltradas.reduce((s, c) => s + c.total, 0), [comprasFiltradas]);
+  const comprasPrioritarias = useMemo(
+    () => comprasFiltradas.filter((c) => c.prioridade === "Sim").reduce((s, c) => s + c.total, 0),
+    [comprasFiltradas],
+  );
+  const quantidadePrioritarias = useMemo(
+    () => comprasFiltradas.filter((c) => c.prioridade === "Sim").length,
+    [comprasFiltradas],
+  );
+  const totalDespesas = useMemo(() => despesasFiltradas.reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
+  const totalPago = useMemo(() => despesasFiltradas.filter((d) => d.pago).reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
   const totalPendente = totalDespesas - totalPago;
   const percPago = totalDespesas > 0 ? ((totalPago / totalDespesas) * 100).toFixed(1) : "0";
+  const hasGlobalFilter = mesFiltro !== null || categoriaFiltro !== null;
+  const resumoCompras = hasGlobalFilter ? `${comprasFiltradas.length} itens em foco` : `${comprasState.length} itens no total`;
+  const resumoDespesas = hasGlobalFilter ? `${despesasFiltradas.length} registros em foco` : "Previsto + realizado";
+  const resumoPago = totalDespesas > 0 ? `${percPago}% do total em foco` : "Nenhuma despesa encontrada";
+  const resumoPendente = hasGlobalFilter ? "Restante no filtro atual" : "Restante a pagar";
+  const resumoPrioridade = quantidadePrioritarias > 0
+    ? `${quantidadePrioritarias} itens marcados como \"Sim\"`
+    : "Nenhum item com prioridade alta";
 
   const handleTogglePago = (realIndex: number) => {
     setDespesasState((prev) => {
@@ -66,80 +95,83 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="geral" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="geral" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Visão Geral</span>
-              <span className="sm:hidden">Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="despesas" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
-              <Receipt className="h-4 w-4" />
-              <span>Despesas</span>
-            </TabsTrigger>
-            <TabsTrigger value="compras" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
-              <Package className="h-4 w-4" />
-              <span>Compras</span>
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          <DashboardFilters
+            mesFiltro={mesFiltro}
+            setMesFiltro={setMesFiltro}
+            categoriaFiltro={categoriaFiltro}
+            setCategoriaFiltro={setCategoriaFiltro}
+            categorias={categoriasDisponiveis}
+          />
 
-          {/* ===== ABA GERAL ===== */}
-          <TabsContent value="geral" className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="Compras Planejadas" value={totalCompras} icon={ShoppingCart} subtitle={`${comprasState.length} itens no total`} />
-              <StatCard title="Despesas 2026" value={totalDespesas} icon={DollarSign} subtitle="Previsto + realizado" trend="up" />
-              <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={`${percPago}% do total`} trend="down" />
-              <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle="Restante a pagar" />
-            </div>
+          <Tabs defaultValue="geral" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50 p-1 rounded-xl">
+              <TabsTrigger value="geral" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Visão Geral</span>
+                <span className="sm:hidden">Geral</span>
+              </TabsTrigger>
+              <TabsTrigger value="despesas" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                <Receipt className="h-4 w-4" />
+                <span>Despesas</span>
+              </TabsTrigger>
+              <TabsTrigger value="compras" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                <Package className="h-4 w-4" />
+                <span>Aquisições</span>
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DespesasMensaisChart />
-              <CategoriasPieChart />
-            </div>
+            {/* ===== ABA GERAL ===== */}
+            <TabsContent value="geral" className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Aquisições Planejadas" value={totalCompras} icon={ShoppingCart} subtitle={resumoCompras} />
+                <StatCard title="Despesas 2026" value={totalDespesas} icon={DollarSign} subtitle={resumoDespesas} trend="up" />
+                <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={resumoPago} trend="down" />
+                <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle={resumoPendente} />
+              </div>
 
-            <EvolucaoChart mesFiltro={mesFiltro} categoriaFiltro={categoriaFiltro} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DespesasMensaisChart despesas={despesasFiltradas} />
+                <CategoriasPieChart despesas={despesasFiltradas} />
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <InsightsPanel />
-              <RecorrentesCard />
-            </div>
-          </TabsContent>
+              <EvolucaoChart despesas={despesasFiltradas} />
 
-          {/* ===== ABA DESPESAS ===== */}
-          <TabsContent value="despesas" className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard title="Total Despesas" value={totalDespesas} icon={DollarSign} subtitle="Previsto + realizado" trend="up" />
-              <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={`${percPago}% do total`} trend="down" />
-              <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle="Restante a pagar" />
-            </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <InsightsPanel despesas={despesasFiltradas} compras={comprasFiltradas} recorrentes={recorrentesFiltradas} />
+                <RecorrentesCard recorrentes={recorrentesFiltradas} />
+              </div>
+            </TabsContent>
 
-            <DashboardFilters
-              mesFiltro={mesFiltro}
-              setMesFiltro={setMesFiltro}
-              categoriaFiltro={categoriaFiltro}
-              setCategoriaFiltro={setCategoriaFiltro}
-            />
+            {/* ===== ABA DESPESAS ===== */}
+            <TabsContent value="despesas" className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatCard title="Total Despesas" value={totalDespesas} icon={DollarSign} subtitle={resumoDespesas} trend="up" />
+                <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={resumoPago} trend="down" />
+                <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle={resumoPendente} />
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DespesasMensaisChart />
-              <EvolucaoChart mesFiltro={mesFiltro} categoriaFiltro={categoriaFiltro} />
-            </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DespesasMensaisChart despesas={despesasFiltradas} />
+                <EvolucaoChart despesas={despesasFiltradas} />
+              </div>
 
-            <DespesasTable despesas={despesasFiltradas} onTogglePago={handleTogglePago} />
+              <DespesasTable despesas={despesasFiltradas} onTogglePago={handleTogglePago} />
 
-            <RecorrentesCard />
-          </TabsContent>
+              <RecorrentesCard recorrentes={recorrentesFiltradas} />
+            </TabsContent>
 
-          {/* ===== ABA COMPRAS ===== */}
-          <TabsContent value="compras" className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <StatCard title="Total Compras Planejadas" value={totalCompras} icon={ShoppingCart} subtitle={`${comprasState.length} itens no total`} />
-              <StatCard title="Investimento Pendente" value={totalCompras} icon={CreditCard} subtitle="Valor total previsto" />
-            </div>
+            {/* ===== ABA AQUISIÇÕES ===== */}
+            <TabsContent value="compras" className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <StatCard title="Total em Aquisições" value={totalCompras} icon={ShoppingCart} subtitle={resumoCompras} />
+                <StatCard title="Prioridade Alta" value={comprasPrioritarias} icon={CreditCard} subtitle={resumoPrioridade} />
+              </div>
 
-            <ComprasTable compras={comprasState} onPrioridadeChange={handlePrioridadeChange} />
-          </TabsContent>
-        </Tabs>
+              <ComprasTable compras={comprasFiltradas} onPrioridadeChange={handlePrioridadeChange} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </main>
 
       <footer className="border-t border-border py-4 mt-8">

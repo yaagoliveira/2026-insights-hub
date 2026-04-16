@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import type { IndexedItem } from "@/lib/financeiro";
 
 const prazoToDate = (prazo: string): string => {
   const lower = prazo.toLowerCase();
@@ -33,7 +34,7 @@ const prioridadeStyle = (p: string) => {
 };
 
 interface ComprasTableProps {
-  compras: Compra[];
+  compras: IndexedItem<Compra>[];
   onPrioridadeChange: (index: number, value: string) => void;
 }
 
@@ -53,7 +54,7 @@ const ComprasTable = ({ compras, onPrioridadeChange }: ComprasTableProps) => {
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <div className="p-5 border-b border-border">
-        <h3 className="text-lg font-semibold text-foreground">🛒 Lista de Compras Previstas</h3>
+        <h3 className="text-lg font-semibold text-foreground">🛒 Lista de Aquisições Previstas</h3>
         <p className="text-sm text-muted-foreground mt-1">
           {filtered.length} de {compras.length} itens · Total: <span className="text-foreground font-medium">{formatCurrency(totalFiltered)}</span>
         </p>
@@ -90,9 +91,8 @@ const ComprasTable = ({ compras, onPrioridadeChange }: ComprasTableProps) => {
               </tr>
             ) : (
               filtered.map((c) => {
-                const origIdx = compras.indexOf(c);
                 return (
-                  <tr key={origIdx} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  <tr key={c.originalIndex} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                     <td className="p-3 text-foreground">{c.categoria}</td>
                     <td className="p-3 text-foreground font-medium">{c.item}</td>
                     <td className="p-3 text-right text-foreground">{formatCurrency(c.total)}</td>
@@ -103,7 +103,7 @@ const ComprasTable = ({ compras, onPrioridadeChange }: ComprasTableProps) => {
                       </Badge>
                     </td>
                     <td className="p-3 text-center">
-                      <Select value={c.prioridade} onValueChange={(v) => onPrioridadeChange(origIdx, v)}>
+                      <Select value={c.prioridade} onValueChange={(v) => onPrioridadeChange(c.originalIndex, v)}>
                         <SelectTrigger className="h-8 w-[140px] mx-auto text-xs">
                           <SelectValue>
                             <Badge variant="outline" className={`${prioridadeStyle(c.prioridade)} text-xs`}>

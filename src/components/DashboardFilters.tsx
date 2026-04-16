@@ -1,17 +1,17 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Filter, X } from "lucide-react";
-import { meses, despesas } from "@/data/financeiro2026";
+import { meses } from "@/data/financeiro2026";
 
 interface DashboardFiltersProps {
   mesFiltro: number | null;
   setMesFiltro: (v: number | null) => void;
   categoriaFiltro: string | null;
   setCategoriaFiltro: (v: string | null) => void;
+  categorias: string[];
 }
 
-const DashboardFilters = ({ mesFiltro, setMesFiltro, categoriaFiltro, setCategoriaFiltro }: DashboardFiltersProps) => {
-  const categorias = [...new Set(despesas.map((d) => d.categoria))].sort();
+const DashboardFilters = ({ mesFiltro, setMesFiltro, categoriaFiltro, setCategoriaFiltro, categorias }: DashboardFiltersProps) => {
   const hasFilter = mesFiltro !== null || categoriaFiltro !== null;
 
   return (

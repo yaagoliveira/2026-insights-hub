@@ -1,20 +1,27 @@
 import { TrendingUp, TrendingDown, AlertTriangle, Lightbulb } from "lucide-react";
-import { despesas, compras, despesasRecorrentes, formatCurrency } from "@/data/financeiro2026";
+import { Compra, Despesa, DespesaRecorrente, formatCurrency } from "@/data/financeiro2026";
 
-const InsightsPanel = () => {
+interface InsightsPanelProps {
+  despesas: Despesa[];
+  compras: Compra[];
+  recorrentes: DespesaRecorrente[];
+}
+
+const InsightsPanel = ({ despesas, compras, recorrentes }: InsightsPanelProps) => {
   const pagas = despesas.filter((d) => d.pago);
   const totalPago = pagas.reduce((s, d) => s + d.valor, 0);
   const mesesPagos = new Set(pagas.map((d) => d.mesNum)).size;
-  const mediaMensal = totalPago / mesesPagos;
+  const mediaMensal = mesesPagos > 0 ? totalPago / mesesPagos : 0;
 
   const catMap = new Map<string, number>();
   pagas.forEach((d) => catMap.set(d.categoria, (catMap.get(d.categoria) || 0) + d.valor));
-  const topCat = Array.from(catMap.entries()).sort((a, b) => b[1] - a[1])[0];
+  const topCat = Array.from(catMap.entries()).sort((a, b) => b[1] - a[1])[0] ?? null;
 
   const totalCompras = compras.reduce((s, c) => s + c.total, 0);
   const comprasPrioritarias = compras.filter((c) => c.prioridade === "Sim").reduce((s, c) => s + c.total, 0);
+  const comprasPrioritariasCount = compras.filter((c) => c.prioridade === "Sim").length;
 
-  const recorrenteMensal = despesasRecorrentes.reduce((s, r) => s + r.valor, 0);
+  const recorrenteMensal = recorrentes.reduce((s, r) => s + r.valor, 0);
 
   const insights = [
     {
@@ -22,28 +29,39 @@ const InsightsPanel = () => {
       color: "text-primary",
       bg: "bg-primary/10",
       title: "Média mensal de gastos",
-      desc: `Nos últimos ${mesesPagos} meses, sua média foi de ${formatCurrency(mediaMensal)}/mês.`,
+      desc:
+        mesesPagos > 0
+          ? `Nos ${mesesPagos} meses pagos em foco, sua média foi de ${formatCurrency(mediaMensal)}/mês.`
+          : "Nenhuma despesa paga encontrada no recorte atual.",
     },
     {
       icon: AlertTriangle,
       color: "text-chart-3",
       bg: "bg-chart-3/10",
       title: "Maior categoria de gasto",
-      desc: `"${topCat[0]}" já consumiu ${formatCurrency(topCat[1])} — ${((topCat[1] / totalPago) * 100).toFixed(1)}% do total pago.`,
+      desc: topCat
+        ? `"${topCat[0]}" já consumiu ${formatCurrency(topCat[1])} — ${((topCat[1] / totalPago) * 100).toFixed(1)}% do total pago.`
+        : "Ainda não há uma categoria dominante entre os pagamentos filtrados.",
     },
     {
       icon: TrendingDown,
       color: "text-accent",
       bg: "bg-accent/10",
       title: "Despesas recorrentes",
-      desc: `Você tem ${formatCurrency(recorrenteMensal)}/mês em contas fixas (${formatCurrency(recorrenteMensal * 12)}/ano).`,
+      desc:
+        recorrentes.length > 0
+          ? `Você tem ${formatCurrency(recorrenteMensal)}/mês em contas fixas (${formatCurrency(recorrenteMensal * 12)}/ano).`
+          : "Nenhuma despesa recorrente encontrada para os filtros atuais.",
     },
     {
       icon: Lightbulb,
       color: "text-chart-4",
       bg: "bg-chart-4/10",
-      title: "Compras prioritárias pendentes",
-      desc: `${formatCurrency(comprasPrioritarias)} em compras de alta prioridade. Total planejado: ${formatCurrency(totalCompras)}.`,
+      title: "Aquisições prioritárias",
+      desc:
+        comprasPrioritariasCount > 0
+          ? `${formatCurrency(comprasPrioritarias)} em ${comprasPrioritariasCount} aquisições marcadas como prioridade alta. Total em foco: ${formatCurrency(totalCompras)}.`
+          : `Nenhuma aquisição está marcada como prioridade alta. Total em foco: ${formatCurrency(totalCompras)}.`,
     },
   ];
 
