@@ -47,12 +47,34 @@ const mesNumFromString = (raw: string): number => {
 
 // ====== Google Service Account JWT (RS256) ======
 const pemToArrayBuffer = (pem: string): ArrayBuffer => {
-  const cleaned = pem
-    .replace(/\\n/g, "\n")
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
+  // Aceita: PEM com quebras reais, PEM com "\n" literais, ou base64 puro sem cabeçalho
+  let cleaned = pem.trim();
+  // Remove aspas se a chave veio colada com aspas
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+      (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1);
+  }
+  cleaned = cleaned.replace(/\\n/g, "\n");
+  cleaned = cleaned
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
     .replace(/\s+/g, "");
-  const binary = atob(cleaned);
+
+  if (!cleaned) {
+    throw new Error("GOOGLE_SHEETS_PRIVATE_KEY está vazia após sanitização");
+  }
+  // Garante padding base64 correto
+  const pad = cleaned.length % 4;
+  if (pad === 2) cleaned += "==";
+  else if (pad === 3) cleaned += "=";
+  else if (pad === 1) throw new Error("GOOGLE_SHEETS_PRIVATE_KEY tem comprimento base64 inválido");
+
+  let binary: string;
+  try {
+    binary = atob(cleaned);
+  } catch (e) {
+    throw new Error(`Falha ao decodificar base64 da chave privada: ${(e as Error).message}`);
+  }
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
