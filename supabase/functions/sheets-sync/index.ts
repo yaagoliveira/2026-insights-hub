@@ -290,6 +290,15 @@ Deno.serve(async (req) => {
     if (!privateKey) throw new Error("GOOGLE_SHEETS_PRIVATE_KEY não configurado");
     if (!sheetId) throw new Error("GOOGLE_SHEETS_ID não configurado");
 
+    // Diagnóstico (não loga o conteúdo da chave, apenas características)
+    console.log("PK diag:", {
+      length: privateKey.length,
+      startsWith: privateKey.slice(0, 30),
+      hasBeginPem: privateKey.includes("BEGIN"),
+      hasLiteralBackslashN: privateKey.includes("\\n"),
+      hasRealNewline: privateKey.includes("\n"),
+    });
+
     const token = await getAccessToken(clientEmail, privateKey);
 
     const [aquisicoesRows, despesasRows] = await Promise.all([
