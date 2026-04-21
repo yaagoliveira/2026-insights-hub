@@ -270,9 +270,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const clientEmail = Deno.env.get("GOOGLE_SHEETS_CLIENT_EMAIL");
-    const privateKey = Deno.env.get("GOOGLE_SHEETS_PRIVATE_KEY");
+    const clientEmailRaw = Deno.env.get("GOOGLE_SHEETS_CLIENT_EMAIL");
+    let privateKey = Deno.env.get("GOOGLE_SHEETS_PRIVATE_KEY");
     const sheetId = Deno.env.get("GOOGLE_SHEETS_ID");
+    let clientEmail = clientEmailRaw;
+
+    // Se a private key veio como JSON da Service Account, extrai os campos
+    if (privateKey && privateKey.trim().startsWith("{")) {
+      try {
+        const sa = JSON.parse(privateKey);
+        if (sa.private_key) privateKey = sa.private_key;
+        if (sa.client_email && !clientEmail) clientEmail = sa.client_email;
+      } catch (e) {
+        throw new Error(`GOOGLE_SHEETS_PRIVATE_KEY parece JSON mas não pôde ser parseado: ${(e as Error).message}`);
+      }
+    }
 
     if (!clientEmail) throw new Error("GOOGLE_SHEETS_CLIENT_EMAIL não configurado");
     if (!privateKey) throw new Error("GOOGLE_SHEETS_PRIVATE_KEY não configurado");
