@@ -104,10 +104,26 @@ const Index = () => {
             <p className="text-xs text-muted-foreground">Painel de acompanhamento financeiro pessoal</p>
           </div>
           <div className="flex items-center gap-3">
+            {sheetError && (
+              <div className="hidden sm:flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-1.5" title={sheetError}>
+                <AlertCircle className="w-3.5 h-3.5" />
+                Erro ao sincronizar
+              </div>
+            )}
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-1.5">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Atualizado em Abril 2026
+              <div className={`w-2 h-2 rounded-full ${sheetLoading ? "bg-amber-500 animate-pulse" : sheetError ? "bg-destructive" : "bg-primary animate-pulse"}`} />
+              {sheetLoading ? "Sincronizando…" : sheetData?.meta?.fetchedAt ? `Atualizado ${new Date(sheetData.meta.fetchedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "Planilha conectada"}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={sheetLoading}
+              className="h-8 gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${sheetLoading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
           </div>
         </div>
       </header>
