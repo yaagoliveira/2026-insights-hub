@@ -49,12 +49,12 @@ const Index = () => {
     [comprasIndexadas, mesFiltro, categoriaFiltro],
   );
   const recorrentesFiltradas = useMemo(
-    () => filterRecorrentes(despesasRecorrentes, categoriaFiltro),
-    [categoriaFiltro],
+    () => filterRecorrentes(recorrentesState, categoriaFiltro),
+    [recorrentesState, categoriaFiltro],
   );
   const categoriasDisponiveis = useMemo(
-    () => collectCategorias(despesasState, comprasState, despesasRecorrentes),
-    [despesasState, comprasState],
+    () => collectCategorias(despesasState, comprasState, recorrentesState),
+    [despesasState, comprasState, recorrentesState],
   );
 
   const totalCompras = useMemo(() => comprasFiltradas.reduce((s, c) => s + c.total, 0), [comprasFiltradas]);
