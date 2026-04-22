@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
-import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package } from "lucide-react";
-import { compras as comprasInitial, despesas as despesasInitial, despesasRecorrentes, Compra, Despesa } from "@/data/financeiro2026";
+import { useState, useMemo, useEffect } from "react";
+import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle } from "lucide-react";
+import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import StatCard from "@/components/StatCard";
 import ComprasTable from "@/components/ComprasTable";
 import DespesasMensaisChart from "@/components/DespesasMensaisChart";
@@ -12,12 +13,29 @@ import DashboardFilters from "@/components/DashboardFilters";
 import EvolucaoChart from "@/components/EvolucaoChart";
 import DespesasTable from "@/components/DespesasTable";
 import { collectCategorias, filterCompras, filterDespesas, filterRecorrentes, withOriginalIndex } from "@/lib/financeiro";
+import { useFinanceiroSheet } from "@/hooks/useFinanceiroSheet";
 
 const Index = () => {
   const [mesFiltro, setMesFiltro] = useState<number | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
-  const [despesasState, setDespesasState] = useState<Despesa[]>([...despesasInitial]);
-  const [comprasState, setComprasState] = useState<Compra[]>([...comprasInitial]);
+  const [despesasState, setDespesasState] = useState<Despesa[]>([]);
+  const [comprasState, setComprasState] = useState<Compra[]>([]);
+  const [recorrentesState, setRecorrentesState] = useState<DespesaRecorrente[]>(recorrentesFallback);
+
+  const { data: sheetData, loading: sheetLoading, error: sheetError, refetch } = useFinanceiroSheet();
+
+  // Sincroniza dados da planilha com o estado local
+  useEffect(() => {
+    if (sheetData) {
+      setDespesasState(sheetData.despesas ?? []);
+      setComprasState(sheetData.compras ?? []);
+      setRecorrentesState(
+        sheetData.recorrentes && sheetData.recorrentes.length > 0
+          ? sheetData.recorrentes
+          : recorrentesFallback,
+      );
+    }
+  }, [sheetData]);
 
   const despesasIndexadas = useMemo(() => withOriginalIndex(despesasState), [despesasState]);
   const comprasIndexadas = useMemo(() => withOriginalIndex(comprasState), [comprasState]);
@@ -31,12 +49,12 @@ const Index = () => {
     [comprasIndexadas, mesFiltro, categoriaFiltro],
   );
   const recorrentesFiltradas = useMemo(
-    () => filterRecorrentes(despesasRecorrentes, categoriaFiltro),
-    [categoriaFiltro],
+    () => filterRecorrentes(recorrentesState, categoriaFiltro),
+    [recorrentesState, categoriaFiltro],
   );
   const categoriasDisponiveis = useMemo(
-    () => collectCategorias(despesasState, comprasState, despesasRecorrentes),
-    [despesasState, comprasState],
+    () => collectCategorias(despesasState, comprasState, recorrentesState),
+    [despesasState, comprasState, recorrentesState],
   );
 
   const totalCompras = useMemo(() => comprasFiltradas.reduce((s, c) => s + c.total, 0), [comprasFiltradas]);
@@ -86,10 +104,26 @@ const Index = () => {
             <p className="text-xs text-muted-foreground">Painel de acompanhamento financeiro pessoal</p>
           </div>
           <div className="flex items-center gap-3">
+            {sheetError && (
+              <div className="hidden sm:flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-1.5" title={sheetError}>
+                <AlertCircle className="w-3.5 h-3.5" />
+                Erro ao sincronizar
+              </div>
+            )}
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-1.5">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Atualizado em Abril 2026
+              <div className={`w-2 h-2 rounded-full ${sheetLoading ? "bg-amber-500 animate-pulse" : sheetError ? "bg-destructive" : "bg-primary animate-pulse"}`} />
+              {sheetLoading ? "Sincronizando…" : sheetData?.meta?.fetchedAt ? `Atualizado ${new Date(sheetData.meta.fetchedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "Planilha conectada"}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={sheetLoading}
+              className="h-8 gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${sheetLoading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
           </div>
         </div>
       </header>
