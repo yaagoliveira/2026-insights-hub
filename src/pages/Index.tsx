@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
-import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package } from "lucide-react";
-import { compras as comprasInitial, despesas as despesasInitial, despesasRecorrentes, Compra, Despesa } from "@/data/financeiro2026";
+import { useState, useMemo, useEffect } from "react";
+import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle } from "lucide-react";
+import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import StatCard from "@/components/StatCard";
 import ComprasTable from "@/components/ComprasTable";
 import DespesasMensaisChart from "@/components/DespesasMensaisChart";
@@ -12,12 +13,29 @@ import DashboardFilters from "@/components/DashboardFilters";
 import EvolucaoChart from "@/components/EvolucaoChart";
 import DespesasTable from "@/components/DespesasTable";
 import { collectCategorias, filterCompras, filterDespesas, filterRecorrentes, withOriginalIndex } from "@/lib/financeiro";
+import { useFinanceiroSheet } from "@/hooks/useFinanceiroSheet";
 
 const Index = () => {
   const [mesFiltro, setMesFiltro] = useState<number | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
-  const [despesasState, setDespesasState] = useState<Despesa[]>([...despesasInitial]);
-  const [comprasState, setComprasState] = useState<Compra[]>([...comprasInitial]);
+  const [despesasState, setDespesasState] = useState<Despesa[]>([]);
+  const [comprasState, setComprasState] = useState<Compra[]>([]);
+  const [recorrentesState, setRecorrentesState] = useState<DespesaRecorrente[]>(recorrentesFallback);
+
+  const { data: sheetData, loading: sheetLoading, error: sheetError, refetch } = useFinanceiroSheet();
+
+  // Sincroniza dados da planilha com o estado local
+  useEffect(() => {
+    if (sheetData) {
+      setDespesasState(sheetData.despesas ?? []);
+      setComprasState(sheetData.compras ?? []);
+      setRecorrentesState(
+        sheetData.recorrentes && sheetData.recorrentes.length > 0
+          ? sheetData.recorrentes
+          : recorrentesFallback,
+      );
+    }
+  }, [sheetData]);
 
   const despesasIndexadas = useMemo(() => withOriginalIndex(despesasState), [despesasState]);
   const comprasIndexadas = useMemo(() => withOriginalIndex(comprasState), [comprasState]);
