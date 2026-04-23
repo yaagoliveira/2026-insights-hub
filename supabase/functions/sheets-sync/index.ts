@@ -201,8 +201,9 @@ interface DespesaRecorrente {
 
 const parseAquisicoes = (rows: string[][]): Compra[] => {
   if (rows.length < 2) return [];
-  const idx = buildHeaderIndex(rows[0]);
-  return rows.slice(1)
+  const headerRow = findHeaderRowSafe(rows, ["Itens"]);
+  const idx = buildHeaderIndex(rows[headerRow]);
+  return rows.slice(headerRow + 1)
     .filter((r) => r.some((c) => c && c.toString().trim()))
     .map((r) => {
       const valor = parseNumber(pick(r, idx, "Valor"));
@@ -218,6 +219,15 @@ const parseAquisicoes = (rows: string[][]): Compra[] => {
       };
     })
     .filter((c) => c.item);
+};
+
+const findHeaderRowSafe = (rows: string[][], requiredKeys: string[]): number => {
+  const required = requiredKeys.map(normalize);
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const normalized = rows[i].map((c) => normalize(String(c ?? "")));
+    if (required.every((k) => normalized.includes(k))) return i;
+  }
+  return 0;
 };
 
 const findHeaderRow = (rows: string[][], requiredKeys: string[]): number => {
