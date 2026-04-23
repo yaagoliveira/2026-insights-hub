@@ -230,18 +230,9 @@ const findHeaderRowSafe = (rows: string[][], requiredKeys: string[]): number => 
   return 0;
 };
 
-const findHeaderRow = (rows: string[][], requiredKeys: string[]): number => {
-  const required = requiredKeys.map(normalize);
-  for (let i = 0; i < Math.min(rows.length, 10); i++) {
-    const normalized = rows[i].map((c) => normalize(String(c ?? "")));
-    if (required.every((k) => normalized.includes(k))) return i;
-  }
-  return 0;
-};
-
 const parseDespesas = (rows: string[][]) => {
   if (rows.length < 2) return { despesas: [] as Despesa[], recorrentes: [] as DespesaRecorrente[] };
-  const headerRow = findHeaderRow(rows, ["Itens"]);
+  const headerRow = findHeaderRowSafe(rows, ["Itens"]);
   const idx = buildHeaderIndex(rows[headerRow]);
   const despesas: Despesa[] = [];
   const recorrentes: DespesaRecorrente[] = [];
