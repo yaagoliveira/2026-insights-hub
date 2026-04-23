@@ -62,6 +62,12 @@ export const filterRecorrentes = <T extends DespesaRecorrente>(recorrentes: T[],
   });
 
 export const collectCategorias = (...groups: Array<Array<{ categoria: string }>>) =>
-  Array.from(new Set(groups.flatMap((group) => group.map((item) => item.categoria)))).sort((a, b) =>
-    a.localeCompare(b, "pt-BR"),
-  );
+  Array.from(
+    new Set(
+      groups.flatMap((group) =>
+        group
+          .map((item) => item.categoria?.trim())
+          .filter((categoria): categoria is string => Boolean(categoria)),
+      ),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
