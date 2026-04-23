@@ -19,7 +19,10 @@ const DespesasTable = ({ despesas, onTogglePago }: DespesasTableProps) => {
   const [mesFiltro, setMesFiltro] = useState<string>("all");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("all");
 
-  const categorias = useMemo(() => [...new Set(despesas.map((d) => d.categoria))].sort(), [despesas]);
+  const categorias = useMemo(
+    () => [...new Set(despesas.map((d) => d.categoria?.trim()).filter((categoria): categoria is string => Boolean(categoria)))].sort(),
+    [despesas],
+  );
   const mesesDisponiveis = useMemo(() => [...new Set(despesas.map((d) => d.mesNum))].sort((a, b) => a - b), [despesas]);
 
   const filtered = useMemo(() => despesas.filter((d) => {
