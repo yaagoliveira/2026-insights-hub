@@ -201,8 +201,9 @@ interface DespesaRecorrente {
 
 const parseAquisicoes = (rows: string[][]): Compra[] => {
   if (rows.length < 2) return [];
-  const idx = buildHeaderIndex(rows[0]);
-  return rows.slice(1)
+  const headerRow = findHeaderRowSafe(rows, ["Itens"]);
+  const idx = buildHeaderIndex(rows[headerRow]);
+  return rows.slice(headerRow + 1)
     .filter((r) => r.some((c) => c && c.toString().trim()))
     .map((r) => {
       const valor = parseNumber(pick(r, idx, "Valor"));
@@ -220,20 +221,30 @@ const parseAquisicoes = (rows: string[][]): Compra[] => {
     .filter((c) => c.item);
 };
 
+const findHeaderRowSafe = (rows: string[][], requiredKeys: string[]): number => {
+  const required = requiredKeys.map(normalize);
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const normalized = rows[i].map((c) => normalize(String(c ?? "")));
+    if (required.every((k) => normalized.includes(k))) return i;
+  }
+  return 0;
+};
+
 const parseDespesas = (rows: string[][]) => {
   if (rows.length < 2) return { despesas: [] as Despesa[], recorrentes: [] as DespesaRecorrente[] };
-  const idx = buildHeaderIndex(rows[0]);
+  const headerRow = findHeaderRowSafe(rows, ["Itens"]);
+  const idx = buildHeaderIndex(rows[headerRow]);
   const despesas: Despesa[] = [];
   const recorrentes: DespesaRecorrente[] = [];
 
-  rows.slice(1)
+  rows.slice(headerRow + 1)
     .filter((r) => r.some((c) => c && c.toString().trim()))
     .forEach((r) => {
       const recorrenteFlag = normalize(pick(r, idx, "Recorrente"));
       const categoria = pick(r, idx, "Categoria").toString().trim();
       const item = pick(r, idx, "Itens", "Item").toString().trim();
       const valor = parseNumber(pick(r, idx, "Valor"));
-      const mesRaw = pick(r, idx, "Mês Cobrança", "Mes Cobranca", "Mês", "Mes").toString().trim();
+      const mesRaw = pick(r, idx, "Mês Cobrança", "Mes Cobranca", "Cobrança", "Cobranca", "Mês", "Mes").toString().trim();
       const pago = parseBool(pick(r, idx, "Pago"));
 
       if (!item) return;
