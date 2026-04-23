@@ -317,10 +317,6 @@ Deno.serve(async (req) => {
       fetchSheet(sheetId, "Despesas!A1:Z1000", token),
     ]);
 
-    console.log("Despesas header:", JSON.stringify(despesasRows[0] ?? []));
-    console.log("Despesas row sample:", JSON.stringify(despesasRows[1] ?? []));
-    console.log("Despesas total rows:", despesasRows.length);
-
     const compras = parseAquisicoes(aquisicoesRows);
     const { despesas, recorrentes } = parseDespesas(despesasRows);
 
