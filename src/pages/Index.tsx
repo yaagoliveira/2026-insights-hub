@@ -214,12 +214,29 @@ const Index = () => {
 
             {/* ===== ABA AQUISIÇÕES ===== */}
             <TabsContent value="compras" className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total em Aquisições" value={totalCompras} icon={ShoppingCart} subtitle={resumoCompras} />
+                <StatCard
+                  title="Já Comprado"
+                  value={totalComprado}
+                  icon={PackageCheck}
+                  subtitle={`${quantidadeComprados} de ${comprasFiltradas.length} itens · ${percComprado}%`}
+                  trend="down"
+                />
+                <StatCard
+                  title="A Adquirir"
+                  value={totalCompras - totalComprado}
+                  icon={Package}
+                  subtitle={`${comprasFiltradas.length - quantidadeComprados} itens restantes`}
+                />
                 <StatCard title="Prioridade Alta" value={comprasPrioritarias} icon={CreditCard} subtitle={resumoPrioridade} />
               </div>
 
-              <ComprasTable compras={comprasFiltradas} onPrioridadeChange={handlePrioridadeChange} />
+              <ComprasTable
+                compras={comprasFiltradas}
+                onPrioridadeChange={handlePrioridadeChange}
+                onToggleComprado={handleToggleComprado}
+              />
             </TabsContent>
           </Tabs>
         </div>
