@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle } from "lucide-react";
+import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle, PackageCheck } from "lucide-react";
 import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
