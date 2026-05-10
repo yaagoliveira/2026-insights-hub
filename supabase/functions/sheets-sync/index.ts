@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const meses = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "janeiro", "fevereiro", "marco", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
 ];
 
