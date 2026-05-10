@@ -76,6 +76,7 @@ const ComprasTable = ({ compras, onPrioridadeChange, onToggleComprado }: Compras
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
+              <th className="text-center p-3 text-muted-foreground font-medium w-12">✓</th>
               <th className="text-left p-3 text-muted-foreground font-medium">Categoria</th>
               <th className="text-left p-3 text-muted-foreground font-medium">Item</th>
               <th className="text-right p-3 text-muted-foreground font-medium">Valor</th>
@@ -87,16 +88,23 @@ const ComprasTable = ({ compras, onPrioridadeChange, onToggleComprado }: Compras
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground">
                   Nenhum item encontrado.
                 </td>
               </tr>
             ) : (
               filtered.map((c) => {
                 return (
-                  <tr key={c.originalIndex} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  <tr key={c.originalIndex} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${c.comprado ? "opacity-60" : ""}`}>
+                    <td className="p-3 text-center">
+                      <Checkbox
+                        checked={!!c.comprado}
+                        onCheckedChange={() => onToggleComprado(c.originalIndex)}
+                        aria-label="Marcar como comprado"
+                      />
+                    </td>
                     <td className="p-3 text-foreground">{c.categoria}</td>
-                    <td className="p-3 text-foreground font-medium">{c.item}</td>
+                    <td className={`p-3 text-foreground font-medium ${c.comprado ? "line-through" : ""}`}>{c.item}</td>
                     <td className="p-3 text-right text-foreground">{formatCurrency(c.total)}</td>
                     <td className="p-3 text-muted-foreground">{c.prazo}</td>
                     <td className="p-3 text-center">
