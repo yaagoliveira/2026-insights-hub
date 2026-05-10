@@ -66,6 +66,15 @@ const Index = () => {
     () => comprasFiltradas.filter((c) => c.prioridade === "Sim").length,
     [comprasFiltradas],
   );
+  const totalComprado = useMemo(
+    () => comprasFiltradas.filter((c) => c.comprado).reduce((s, c) => s + c.total, 0),
+    [comprasFiltradas],
+  );
+  const quantidadeComprados = useMemo(
+    () => comprasFiltradas.filter((c) => c.comprado).length,
+    [comprasFiltradas],
+  );
+  const percComprado = totalCompras > 0 ? ((totalComprado / totalCompras) * 100).toFixed(1) : "0";
   const totalDespesas = useMemo(() => despesasFiltradas.reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
   const totalPago = useMemo(() => despesasFiltradas.filter((d) => d.pago).reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
   const totalPendente = totalDespesas - totalPago;
