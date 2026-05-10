@@ -5,6 +5,7 @@ export interface Compra {
   prazo: string;
   total: number;
   prioridade: string;
+  comprado?: boolean;
 }
 
 export interface Despesa {

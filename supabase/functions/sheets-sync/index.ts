@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const meses = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "janeiro", "fevereiro", "marco", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
 ];
 
@@ -178,6 +178,7 @@ interface Compra {
   prazo: string;
   total: number;
   prioridade: string;
+  comprado: boolean;
 }
 
 interface Despesa {
@@ -216,6 +217,7 @@ const parseAquisicoes = (rows: string[][]): Compra[] => {
         prazo: pick(r, idx, "Prazo").toString().trim(),
         total,
         prioridade: pick(r, idx, "Prioridade").toString().trim() || "Padrão",
+        comprado: parseBool(pick(r, idx, "Comprado", "Adquirido", "Status")),
       };
     })
     .filter((c) => c.item);

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle } from "lucide-react";
+import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle, PackageCheck } from "lucide-react";
 import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,15 @@ const Index = () => {
     () => comprasFiltradas.filter((c) => c.prioridade === "Sim").length,
     [comprasFiltradas],
   );
+  const totalComprado = useMemo(
+    () => comprasFiltradas.filter((c) => c.comprado).reduce((s, c) => s + c.total, 0),
+    [comprasFiltradas],
+  );
+  const quantidadeComprados = useMemo(
+    () => comprasFiltradas.filter((c) => c.comprado).length,
+    [comprasFiltradas],
+  );
+  const percComprado = totalCompras > 0 ? ((totalComprado / totalCompras) * 100).toFixed(1) : "0";
   const totalDespesas = useMemo(() => despesasFiltradas.reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
   const totalPago = useMemo(() => despesasFiltradas.filter((d) => d.pago).reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
   const totalPendente = totalDespesas - totalPago;
@@ -91,6 +100,14 @@ const Index = () => {
     setComprasState((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], prioridade: value };
+      return next;
+    });
+  };
+
+  const handleToggleComprado = (index: number) => {
+    setComprasState((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], comprado: !next[index].comprado };
       return next;
     });
   };
@@ -197,12 +214,29 @@ const Index = () => {
 
             {/* ===== ABA AQUISIÇÕES ===== */}
             <TabsContent value="compras" className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total em Aquisições" value={totalCompras} icon={ShoppingCart} subtitle={resumoCompras} />
+                <StatCard
+                  title="Já Comprado"
+                  value={totalComprado}
+                  icon={PackageCheck}
+                  subtitle={`${quantidadeComprados} de ${comprasFiltradas.length} itens · ${percComprado}%`}
+                  trend="down"
+                />
+                <StatCard
+                  title="A Adquirir"
+                  value={totalCompras - totalComprado}
+                  icon={Package}
+                  subtitle={`${comprasFiltradas.length - quantidadeComprados} itens restantes`}
+                />
                 <StatCard title="Prioridade Alta" value={comprasPrioritarias} icon={CreditCard} subtitle={resumoPrioridade} />
               </div>
 
-              <ComprasTable compras={comprasFiltradas} onPrioridadeChange={handlePrioridadeChange} />
+              <ComprasTable
+                compras={comprasFiltradas}
+                onPrioridadeChange={handlePrioridadeChange}
+                onToggleComprado={handleToggleComprado}
+              />
             </TabsContent>
           </Tabs>
         </div>
