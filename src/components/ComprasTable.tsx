@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Compra, formatCurrency } from "@/data/financeiro2026";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
