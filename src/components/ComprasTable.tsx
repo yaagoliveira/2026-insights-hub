@@ -37,9 +37,10 @@ const prioridadeStyle = (p: string) => {
 interface ComprasTableProps {
   compras: IndexedItem<Compra>[];
   onPrioridadeChange: (index: number, value: string) => void;
+  onToggleComprado: (index: number) => void;
 }
 
-const ComprasTable = ({ compras, onPrioridadeChange }: ComprasTableProps) => {
+const ComprasTable = ({ compras, onPrioridadeChange, onToggleComprado }: ComprasTableProps) => {
   const [busca, setBusca] = useState("");
 
   const filtered = useMemo(() => {
