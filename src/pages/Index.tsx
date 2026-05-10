@@ -104,6 +104,14 @@ const Index = () => {
     });
   };
 
+  const handleToggleComprado = (index: number) => {
+    setComprasState((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], comprado: !next[index].comprado };
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20">
