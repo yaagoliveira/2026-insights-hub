@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { Despesa, meses, formatCurrency } from "@/data/financeiro2026";
 
@@ -6,22 +6,23 @@ interface DespesasMensaisChartProps {
   despesas: Despesa[];
 }
 
-const DespesasMensaisChart = ({ despesas }: DespesasMensaisChartProps) => {
-  const data = useMemo(
-    () =>
-      meses.map((mes, i) => {
-        const total = despesas.filter((d) => d.mesNum === i + 1).reduce((sum, d) => sum + d.valor, 0);
-        const pago = despesas.filter((d) => d.mesNum === i + 1 && d.pago).reduce((sum, d) => sum + d.valor, 0);
+const DespesasMensaisChartImpl = ({ despesas }: DespesasMensaisChartProps) => {
+  const data = useMemo(() => {
+    const totals = new Array(12).fill(0).map(() => ({ total: 0, pago: 0 }));
+    for (const d of despesas) {
+      const i = d.mesNum - 1;
+      if (i < 0 || i > 11) continue;
+      totals[i].total += d.valor;
+      if (d.pago) totals[i].pago += d.valor;
+    }
+    return meses.map((mes, i) => ({
+      mes: mes.slice(0, 3),
+      total: Math.round(totals[i].total * 100) / 100,
+      pago: Math.round(totals[i].pago * 100) / 100,
+      pendente: Math.round((totals[i].total - totals[i].pago) * 100) / 100,
+    }));
+  }, [despesas]);
 
-        return {
-          mes: mes.slice(0, 3),
-          total: Math.round(total * 100) / 100,
-          pago,
-          pendente: Math.round((total - pago) * 100) / 100,
-        };
-      }),
-    [despesas],
-  );
 
   const mesAtual = 4;
   const hasData = despesas.length > 0;
