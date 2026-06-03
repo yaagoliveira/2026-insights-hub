@@ -61,4 +61,4 @@ const EvolucaoChart = ({ despesas }: EvolucaoChartProps) => {
   );
 };
 
-export default EvolucaoChart;
+export default memo(EvolucaoChart);
