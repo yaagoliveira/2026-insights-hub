@@ -75,4 +75,4 @@ const DespesasMensaisChartImpl = ({ despesas }: DespesasMensaisChartProps) => {
   );
 };
 
-export default DespesasMensaisChart;
+export default memo(DespesasMensaisChartImpl);
