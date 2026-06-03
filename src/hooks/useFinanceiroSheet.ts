@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Compra, Despesa, DespesaRecorrente } from "@/data/financeiro2026";
+import type { Compra, Despesa, DespesaRecorrente, MovimentoCaixa } from "@/data/financeiro2026";
 
 interface SheetPayload {
   compras: Compra[];
   despesas: Despesa[];
   recorrentes: DespesaRecorrente[];
+  caixa: MovimentoCaixa[];
   meta?: {
     comprasCount: number;
     despesasCount: number;
     recorrentesCount: number;
+    caixaCount: number;
     fetchedAt: string;
   };
 }
