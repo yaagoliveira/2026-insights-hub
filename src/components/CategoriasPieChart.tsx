@@ -97,4 +97,4 @@ const CategoriasPieChart = ({ despesas }: CategoriasPieChartProps) => {
   );
 };
 
-export default CategoriasPieChart;
+export default memo(CategoriasPieChart);
