@@ -6,6 +6,7 @@ export interface Compra {
   total: number;
   prioridade: string;
   comprado?: boolean;
+  rowNumber?: number;
 }
 
 export interface Despesa {
@@ -16,6 +17,7 @@ export interface Despesa {
   mes: string;
   pago: boolean;
   mesNum: number;
+  rowNumber?: number;
 }
 
 export interface DespesaRecorrente {
@@ -25,6 +27,15 @@ export interface DespesaRecorrente {
   valor: number;
   qntMes: number;
   totalAnual: number;
+}
+
+export interface MovimentoCaixa {
+  data: string;
+  categoria: string;
+  descricao: string;
+  valor: number;
+  tipo: "Entrada" | "Saída";
+  mesNum: number;
 }
 
 export const compras: Compra[] = [
