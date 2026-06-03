@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
-import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle, PackageCheck } from "lucide-react";
-import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente } from "@/data/financeiro2026";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle, PackageCheck, Wallet } from "lucide-react";
+import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente, MovimentoCaixa } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import StatCard from "@/components/StatCard";
@@ -12,8 +12,12 @@ import RecorrentesCard from "@/components/RecorrentesCard";
 import DashboardFilters from "@/components/DashboardFilters";
 import EvolucaoChart from "@/components/EvolucaoChart";
 import DespesasTable from "@/components/DespesasTable";
+import FluxoCaixaPanel from "@/components/FluxoCaixaPanel";
+import AIInsightsPanel from "@/components/AIInsightsPanel";
 import { collectCategorias, filterCompras, filterDespesas, filterRecorrentes, withOriginalIndex } from "@/lib/financeiro";
 import { useFinanceiroSheet } from "@/hooks/useFinanceiroSheet";
+import { useSheetMutation } from "@/hooks/useSheetMutation";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [mesFiltro, setMesFiltro] = useState<number | null>(null);
@@ -21,10 +25,11 @@ const Index = () => {
   const [despesasState, setDespesasState] = useState<Despesa[]>([]);
   const [comprasState, setComprasState] = useState<Compra[]>([]);
   const [recorrentesState, setRecorrentesState] = useState<DespesaRecorrente[]>(recorrentesFallback);
+  const [caixaState, setCaixaState] = useState<MovimentoCaixa[]>([]);
 
   const { data: sheetData, loading: sheetLoading, error: sheetError, refetch } = useFinanceiroSheet();
+  const { mutate: mutateSheet } = useSheetMutation();
 
-  // Sincroniza dados da planilha com o estado local
   useEffect(() => {
     if (sheetData) {
       setDespesasState(sheetData.despesas ?? []);
@@ -34,6 +39,7 @@ const Index = () => {
           ? sheetData.recorrentes
           : recorrentesFallback,
       );
+      setCaixaState(sheetData.caixa ?? []);
     }
   }, [sheetData]);
 
@@ -57,60 +63,120 @@ const Index = () => {
     [despesasState, comprasState, recorrentesState],
   );
 
-  const totalCompras = useMemo(() => comprasFiltradas.reduce((s, c) => s + c.total, 0), [comprasFiltradas]);
-  const comprasPrioritarias = useMemo(
-    () => comprasFiltradas.filter((c) => c.prioridade === "Sim").reduce((s, c) => s + c.total, 0),
-    [comprasFiltradas],
-  );
-  const quantidadePrioritarias = useMemo(
-    () => comprasFiltradas.filter((c) => c.prioridade === "Sim").length,
-    [comprasFiltradas],
-  );
-  const totalComprado = useMemo(
-    () => comprasFiltradas.filter((c) => c.comprado).reduce((s, c) => s + c.total, 0),
-    [comprasFiltradas],
-  );
-  const quantidadeComprados = useMemo(
-    () => comprasFiltradas.filter((c) => c.comprado).length,
-    [comprasFiltradas],
-  );
-  const percComprado = totalCompras > 0 ? ((totalComprado / totalCompras) * 100).toFixed(1) : "0";
-  const totalDespesas = useMemo(() => despesasFiltradas.reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
-  const totalPago = useMemo(() => despesasFiltradas.filter((d) => d.pago).reduce((s, d) => s + d.valor, 0), [despesasFiltradas]);
-  const totalPendente = totalDespesas - totalPago;
-  const percPago = totalDespesas > 0 ? ((totalPago / totalDespesas) * 100).toFixed(1) : "0";
+  // ---- Totais (memoizados em um único pass) ----
+  const totaisCompras = useMemo(() => {
+    let total = 0, prioritario = 0, qtdPrio = 0, comprado = 0, qtdComp = 0;
+    for (const c of comprasFiltradas) {
+      total += c.total;
+      if (c.prioridade === "Sim") { prioritario += c.total; qtdPrio++; }
+      if (c.comprado) { comprado += c.total; qtdComp++; }
+    }
+    return { total, prioritario, qtdPrio, comprado, qtdComp };
+  }, [comprasFiltradas]);
+
+  const totaisDespesas = useMemo(() => {
+    let total = 0, pago = 0;
+    for (const d of despesasFiltradas) {
+      total += d.valor;
+      if (d.pago) pago += d.valor;
+    }
+    return { total, pago, pendente: total - pago };
+  }, [despesasFiltradas]);
+
+  const percComprado = totaisCompras.total > 0
+    ? ((totaisCompras.comprado / totaisCompras.total) * 100).toFixed(1)
+    : "0";
+  const percPago = totaisDespesas.total > 0
+    ? ((totaisDespesas.pago / totaisDespesas.total) * 100).toFixed(1)
+    : "0";
+
   const hasGlobalFilter = mesFiltro !== null || categoriaFiltro !== null;
   const resumoCompras = hasGlobalFilter ? `${comprasFiltradas.length} itens em foco` : `${comprasState.length} itens no total`;
   const resumoDespesas = hasGlobalFilter ? `${despesasFiltradas.length} registros em foco` : "Previsto + realizado";
-  const resumoPago = totalDespesas > 0 ? `${percPago}% do total em foco` : "Nenhuma despesa encontrada";
+  const resumoPago = totaisDespesas.total > 0 ? `${percPago}% do total em foco` : "Nenhuma despesa encontrada";
   const resumoPendente = hasGlobalFilter ? "Restante no filtro atual" : "Restante a pagar";
-  const resumoPrioridade = quantidadePrioritarias > 0
-    ? `${quantidadePrioritarias} itens marcados como \"Sim\"`
+  const resumoPrioridade = totaisCompras.qtdPrio > 0
+    ? `${totaisCompras.qtdPrio} itens marcados como "Sim"`
     : "Nenhum item com prioridade alta";
 
-  const handleTogglePago = (realIndex: number) => {
+  // ---- Mutations otimistas com rollback ----
+  const handleTogglePago = useCallback(async (realIndex: number) => {
+    const target = despesasState[realIndex];
+    if (!target) return;
+    const next = !target.pago;
     setDespesasState((prev) => {
-      const next = [...prev];
-      next[realIndex] = { ...next[realIndex], pago: !next[realIndex].pago };
-      return next;
+      const arr = [...prev];
+      arr[realIndex] = { ...arr[realIndex], pago: next };
+      return arr;
     });
-  };
+    if (!target.rowNumber) return; // dados de fallback sem linha
+    const res = await mutateSheet({
+      sheet: "Despesas",
+      rowNumber: target.rowNumber,
+      column: "Pago",
+      value: next ? "Sim" : "",
+    });
+    if (!res.ok) {
+      setDespesasState((prev) => {
+        const arr = [...prev];
+        arr[realIndex] = { ...arr[realIndex], pago: target.pago };
+        return arr;
+      });
+      toast({ title: "Erro ao salvar", description: res.error, variant: "destructive" });
+    }
+  }, [despesasState, mutateSheet]);
 
-  const handlePrioridadeChange = (index: number, value: string) => {
+  const handlePrioridadeChange = useCallback(async (index: number, value: string) => {
+    const target = comprasState[index];
+    if (!target) return;
+    const previous = target.prioridade;
     setComprasState((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], prioridade: value };
-      return next;
+      const arr = [...prev];
+      arr[index] = { ...arr[index], prioridade: value };
+      return arr;
     });
-  };
+    if (!target.rowNumber) return;
+    const res = await mutateSheet({
+      sheet: "Aquisições",
+      rowNumber: target.rowNumber,
+      column: "Prioridade",
+      value,
+    });
+    if (!res.ok) {
+      setComprasState((prev) => {
+        const arr = [...prev];
+        arr[index] = { ...arr[index], prioridade: previous };
+        return arr;
+      });
+      toast({ title: "Erro ao salvar", description: res.error, variant: "destructive" });
+    }
+  }, [comprasState, mutateSheet]);
 
-  const handleToggleComprado = (index: number) => {
+  const handleToggleComprado = useCallback(async (index: number) => {
+    const target = comprasState[index];
+    if (!target) return;
+    const next = !target.comprado;
     setComprasState((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], comprado: !next[index].comprado };
-      return next;
+      const arr = [...prev];
+      arr[index] = { ...arr[index], comprado: next };
+      return arr;
     });
-  };
+    if (!target.rowNumber) return;
+    const res = await mutateSheet({
+      sheet: "Aquisições",
+      rowNumber: target.rowNumber,
+      column: "Comprado",
+      value: next ? "Sim" : "",
+    });
+    if (!res.ok) {
+      setComprasState((prev) => {
+        const arr = [...prev];
+        arr[index] = { ...arr[index], comprado: target.comprado };
+        return arr;
+      });
+      toast({ title: "Erro ao salvar", description: res.error, variant: "destructive" });
+    }
+  }, [comprasState, mutateSheet]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,11 +222,15 @@ const Index = () => {
           />
 
           <Tabs defaultValue="geral" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50 p-1 rounded-xl">
+            <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/50 p-1 rounded-xl">
               <TabsTrigger value="geral" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">Visão Geral</span>
                 <span className="sm:hidden">Geral</span>
+              </TabsTrigger>
+              <TabsTrigger value="caixa" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                <Wallet className="h-4 w-4" />
+                <span>Caixa</span>
               </TabsTrigger>
               <TabsTrigger value="despesas" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                 <Receipt className="h-4 w-4" />
@@ -175,11 +245,18 @@ const Index = () => {
             {/* ===== ABA GERAL ===== */}
             <TabsContent value="geral" className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Aquisições Planejadas" value={totalCompras} icon={ShoppingCart} subtitle={resumoCompras} />
-                <StatCard title="Despesas 2026" value={totalDespesas} icon={DollarSign} subtitle={resumoDespesas} trend="up" />
-                <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={resumoPago} trend="down" />
-                <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle={resumoPendente} />
+                <StatCard title="Aquisições Planejadas" value={totaisCompras.total} icon={ShoppingCart} subtitle={resumoCompras} />
+                <StatCard title="Despesas 2026" value={totaisDespesas.total} icon={DollarSign} subtitle={resumoDespesas} trend="up" />
+                <StatCard title="Já Pago" value={totaisDespesas.pago} icon={CheckCircle} subtitle={resumoPago} trend="down" />
+                <StatCard title="Pendente" value={totaisDespesas.pendente} icon={CreditCard} subtitle={resumoPendente} />
               </div>
+
+              <FluxoCaixaPanel
+                caixa={caixaState}
+                despesas={despesasFiltradas}
+                recorrentes={recorrentesFiltradas}
+                mesFiltro={mesFiltro}
+              />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DespesasMensaisChart despesas={despesasFiltradas} />
@@ -192,14 +269,37 @@ const Index = () => {
                 <InsightsPanel despesas={despesasFiltradas} compras={comprasFiltradas} recorrentes={recorrentesFiltradas} />
                 <RecorrentesCard recorrentes={recorrentesFiltradas} />
               </div>
+
+              <AIInsightsPanel
+                despesas={despesasFiltradas}
+                compras={comprasFiltradas}
+                recorrentes={recorrentesFiltradas}
+                caixa={caixaState}
+              />
+            </TabsContent>
+
+            {/* ===== ABA CAIXA ===== */}
+            <TabsContent value="caixa" className="space-y-6">
+              <FluxoCaixaPanel
+                caixa={caixaState}
+                despesas={despesasFiltradas}
+                recorrentes={recorrentesFiltradas}
+                mesFiltro={mesFiltro}
+              />
+              <AIInsightsPanel
+                despesas={despesasFiltradas}
+                compras={comprasFiltradas}
+                recorrentes={recorrentesFiltradas}
+                caixa={caixaState}
+              />
             </TabsContent>
 
             {/* ===== ABA DESPESAS ===== */}
             <TabsContent value="despesas" className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard title="Total Despesas" value={totalDespesas} icon={DollarSign} subtitle={resumoDespesas} trend="up" />
-                <StatCard title="Já Pago" value={totalPago} icon={CheckCircle} subtitle={resumoPago} trend="down" />
-                <StatCard title="Pendente" value={totalPendente} icon={CreditCard} subtitle={resumoPendente} />
+                <StatCard title="Total Despesas" value={totaisDespesas.total} icon={DollarSign} subtitle={resumoDespesas} trend="up" />
+                <StatCard title="Já Pago" value={totaisDespesas.pago} icon={CheckCircle} subtitle={resumoPago} trend="down" />
+                <StatCard title="Pendente" value={totaisDespesas.pendente} icon={CreditCard} subtitle={resumoPendente} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -215,21 +315,21 @@ const Index = () => {
             {/* ===== ABA AQUISIÇÕES ===== */}
             <TabsContent value="compras" className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Total em Aquisições" value={totalCompras} icon={ShoppingCart} subtitle={resumoCompras} />
+                <StatCard title="Total em Aquisições" value={totaisCompras.total} icon={ShoppingCart} subtitle={resumoCompras} />
                 <StatCard
                   title="Já Comprado"
-                  value={totalComprado}
+                  value={totaisCompras.comprado}
                   icon={PackageCheck}
-                  subtitle={`${quantidadeComprados} de ${comprasFiltradas.length} itens · ${percComprado}%`}
+                  subtitle={`${totaisCompras.qtdComp} de ${comprasFiltradas.length} itens · ${percComprado}%`}
                   trend="down"
                 />
                 <StatCard
                   title="A Adquirir"
-                  value={totalCompras - totalComprado}
+                  value={totaisCompras.total - totaisCompras.comprado}
                   icon={Package}
-                  subtitle={`${comprasFiltradas.length - quantidadeComprados} itens restantes`}
+                  subtitle={`${comprasFiltradas.length - totaisCompras.qtdComp} itens restantes`}
                 />
-                <StatCard title="Prioridade Alta" value={comprasPrioritarias} icon={CreditCard} subtitle={resumoPrioridade} />
+                <StatCard title="Prioridade Alta" value={totaisCompras.prioritario} icon={CreditCard} subtitle={resumoPrioridade} />
               </div>
 
               <ComprasTable
