@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Despesa, formatCurrency } from "@/data/financeiro2026";
 
@@ -97,4 +97,4 @@ const CategoriasPieChart = ({ despesas }: CategoriasPieChartProps) => {
   );
 };
 
-export default CategoriasPieChart;
+export default memo(CategoriasPieChart);

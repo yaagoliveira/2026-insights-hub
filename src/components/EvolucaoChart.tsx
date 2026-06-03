@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Despesa, meses, formatCurrency } from "@/data/financeiro2026";
 
@@ -8,21 +8,22 @@ interface EvolucaoChartProps {
 
 const EvolucaoChart = ({ despesas }: EvolucaoChartProps) => {
   const data = useMemo(() => {
+    const totals = new Array(12).fill(0);
+    for (const d of despesas) {
+      const i = d.mesNum - 1;
+      if (i >= 0 && i <= 11) totals[i] += d.valor;
+    }
     let acumulado = 0;
-
     return meses.map((mes, i) => {
-      const mesNum = i + 1;
-      const total = despesas.filter((d) => d.mesNum === mesNum).reduce((sum, d) => sum + d.valor, 0);
-
-      acumulado += total;
-
+      acumulado += totals[i];
       return {
         mes: mes.slice(0, 3),
-        mensal: Math.round(total * 100) / 100,
+        mensal: Math.round(totals[i] * 100) / 100,
         acumulado: Math.round(acumulado * 100) / 100,
       };
     });
   }, [despesas]);
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -60,4 +61,4 @@ const EvolucaoChart = ({ despesas }: EvolucaoChartProps) => {
   );
 };
 
-export default EvolucaoChart;
+export default memo(EvolucaoChart);
