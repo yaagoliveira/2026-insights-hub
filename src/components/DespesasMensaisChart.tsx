@@ -24,7 +24,7 @@ const DespesasMensaisChartImpl = ({ despesas }: DespesasMensaisChartProps) => {
   }, [despesas]);
 
 
-  const mesAtual = 4;
+  const mesAtual = new Date().getMonth() + 1;
   const hasData = despesas.length > 0;
 
   return (
