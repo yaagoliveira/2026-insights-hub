@@ -218,20 +218,54 @@ const findHeaderRowSafe = (rows: string[][], requiredKeys: string[]): number => 
   return 0;
 };
 
+// Palavras-chave para inferir a categoria a partir do nome do item
+const CATEGORIA_KEYWORDS: Array<[string, string[]]> = [
+  ["Quarto", ["escrivan", "lencol", "lenzol", "travesseiro", "colchao", "cortina", "armario", "cama"]],
+  ["Carro", ["coifa", "cambio", "pingadeira", "pneu", "carro", "oleo", "farol", "retrovisor", "revisao"]],
+  ["Presente", ["dia das maes", "dia da maes", "dia dos pais", "aniversario", "presente", "natal"]],
+  ["Lazer", ["iphone", "ps5", "playstation", "jogo", "tatuagem", "cinema", "show", "console", "notebook"]],
+  ["Autocuidado", ["cirurgia", "cirrurgia", "cabelo", "dentista", "academia", "estetica", "oculos"]],
+  ["Viagem", ["passaporte", "viagem", "hotel", "passagem", "hospedagem"]],
+  ["Casa", ["geladeira", "fogao", "sofa", "maquina", "reforma", "movel"]],
+];
+
+const inferirCategoria = (item: string): string => {
+  const v = normalize(item);
+  for (const [cat, keys] of CATEGORIA_KEYWORDS) {
+    if (keys.some((k) => v.includes(k))) return cat;
+  }
+  return "Outros";
+};
+
+const CATEGORIA_INVALIDA = ["total geral", "total", "soma", "subtotal", "categoria", "-"];
+
 const parseAquisicoes = (rows: string[][]) => {
   if (rows.length < 2) return { items: [] as any[], headerRow: 0, idx: {} as Record<string, number> };
   const headerRow = findHeaderRowSafe(rows, ["Itens"]);
   const idx = buildHeaderIndex(rows[headerRow]);
-  const items = rows.slice(headerRow + 1)
+  const body = rows.slice(headerRow + 1);
+
+  // A coluna Categoria da planilha é, na prática, uma lista/tabela dinâmica
+  // (termina com "Total geral" e células vazias). Nesse caso ela não descreve
+  // o item da linha e precisa ser ignorada em favor da inferência pelo nome.
+  const categoriasBrutas = body.map((r) => pick(r, idx, "Categoria").toString().trim());
+  const colunaEhPivot = categoriasBrutas.some((c) => CATEGORIA_INVALIDA.includes(normalize(c))) ||
+    categoriasBrutas.filter((c) => !c).length > categoriasBrutas.length / 3;
+
+  const items = body
     .map((r, i) => ({ r, rowNumber: headerRow + 2 + i }))
     .filter(({ r }) => r.some((c) => c && c.toString().trim()))
     .map(({ r, rowNumber }) => {
       const valor = parseNumber(pick(r, idx, "Valor"));
       const totalRaw = pick(r, idx, "Total");
       const total = totalRaw ? parseNumber(totalRaw) : valor;
+      const item = pick(r, idx, "Itens", "Item").toString().trim();
+      const catBruta = pick(r, idx, "Categoria").toString().trim();
+      const catValida = catBruta && !CATEGORIA_INVALIDA.includes(normalize(catBruta));
+      const categoria = colunaEhPivot || !catValida ? inferirCategoria(item) : catBruta;
       return {
-        categoria: pick(r, idx, "Categoria").toString().trim(),
-        item: pick(r, idx, "Itens", "Item").toString().trim(),
+        categoria,
+        item,
         valor,
         prazo: pick(r, idx, "Prazo").toString().trim(),
         total,
@@ -240,9 +274,10 @@ const parseAquisicoes = (rows: string[][]) => {
         rowNumber,
       };
     })
-    .filter((c) => c.item);
+    .filter((c) => c.item && !CATEGORIA_INVALIDA.includes(normalize(c.item)));
   return { items, headerRow, idx };
 };
+
 
 const parseDespesas = (rows: string[][]) => {
   if (rows.length < 2) return { despesas: [] as any[], recorrentes: [] as any[], headerRow: 0, idx: {} as Record<string, number> };
