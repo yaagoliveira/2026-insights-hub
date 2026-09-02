@@ -288,7 +288,7 @@ const parseCaixa = (rows: string[][]) => {
   return rows.slice(headerRow + 1)
     .filter((r) => r.some((c) => c && c.toString().trim()))
     .map((r) => {
-      const dataRaw = pick(r, idx, "Data").toString().trim();
+      const dataRaw = pick(r, idx, "Data", "Dados").toString().trim();
       const valor = parseNumber(pick(r, idx, "Valor"));
       const tipoRaw = normalize(pick(r, idx, "Tipo"));
       const tipo = tipoRaw.startsWith("sa") ? "Saída" : "Entrada";
