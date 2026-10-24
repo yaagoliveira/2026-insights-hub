@@ -68,8 +68,8 @@ const Index = () => {
 
   // ---- Lançamentos unificados (Caixa + Despesas, sem duplicidade) ----
   const lancamentos = useMemo(
-    () => buildLancamentos(caixaState, despesasState, recorrentesState),
-    [caixaState, despesasState, recorrentesState],
+    () => buildLancamentos(caixaState, despesasState, sheetData?.recorrentes ?? []),
+    [caixaState, despesasState, sheetData],
   );
   const lancamentosFiltrados = useMemo(
     () => lancamentos.filter((l) =>
