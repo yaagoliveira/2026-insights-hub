@@ -282,7 +282,7 @@ const Index = () => {
               <FluxoCaixaPanel
                 caixa={caixaSemDuplicados}
                 despesas={despesasFiltradas}
-                recorrentes={recorrentesFiltradas}
+                recorrentes={sheetData?.recorrentes ?? []}
                 mesFiltro={mesFiltro}
               />
 
@@ -313,7 +313,7 @@ const Index = () => {
               <FluxoCaixaPanel
                 caixa={caixaSemDuplicados}
                 despesas={despesasFiltradas}
-                recorrentes={recorrentesFiltradas}
+                recorrentes={sheetData?.recorrentes ?? []}
                 mesFiltro={mesFiltro}
               />
               <AIInsightsPanel
