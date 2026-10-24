@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle, PackageCheck, Wallet } from "lucide-react";
+import { DollarSign, ShoppingCart, CreditCard, CheckCircle, LayoutDashboard, Receipt, Package, RefreshCw, AlertCircle, PackageCheck, Wallet, ListOrdered } from "lucide-react";
+import SaldoMensalPanel from "@/components/SaldoMensalPanel";
+import LancamentosTable from "@/components/LancamentosTable";
+import { buildLancamentos, resumirPorMes } from "@/lib/lancamentos";
 import { despesasRecorrentes as recorrentesFallback, Compra, Despesa, DespesaRecorrente, MovimentoCaixa } from "@/data/financeiro2026";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -62,6 +65,24 @@ const Index = () => {
     () => collectCategorias(despesasState, comprasState, recorrentesState),
     [despesasState, comprasState, recorrentesState],
   );
+
+  // ---- Lançamentos unificados (Caixa + Despesas, sem duplicidade) ----
+  const lancamentos = useMemo(
+    () => buildLancamentos(caixaState, despesasState, sheetData?.recorrentes ?? []),
+    [caixaState, despesasState, sheetData],
+  );
+  const lancamentosFiltrados = useMemo(
+    () => lancamentos.filter((l) =>
+      (mesFiltro === null || l.mesNum === mesFiltro) &&
+      (!categoriaFiltro || l.categoria === categoriaFiltro)),
+    [lancamentos, mesFiltro, categoriaFiltro],
+  );
+  const resumoMensal = useMemo(() => resumirPorMes(lancamentos), [lancamentos]);
+  const caixaSemDuplicados = useMemo(() => {
+    const dupIdx = new Set(lancamentos.filter((l) => l.origem === "Caixa" && l.duplicado).map((l) => Number(l.id.split("-")[1])));
+    return caixaState.filter((_, i) => !dupIdx.has(i));
+  }, [lancamentos, caixaState]);
+
 
   // ---- Totais (memoizados em um único pass) ----
   const totaisCompras = useMemo(() => {
@@ -222,7 +243,7 @@ const Index = () => {
           />
 
           <Tabs defaultValue="geral" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/50 p-1 rounded-xl">
+            <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 rounded-xl">
               <TabsTrigger value="geral" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">Visão Geral</span>
@@ -230,8 +251,13 @@ const Index = () => {
               </TabsTrigger>
               <TabsTrigger value="caixa" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                 <Wallet className="h-4 w-4" />
-                <span>Caixa</span>
+                <span className="hidden sm:inline">Caixa</span>
               </TabsTrigger>
+              <TabsTrigger value="lancamentos" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                <ListOrdered className="h-4 w-4" />
+                <span className="hidden sm:inline">Lançamentos</span>
+              </TabsTrigger>
+
               <TabsTrigger value="despesas" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                 <Receipt className="h-4 w-4" />
                 <span>Despesas</span>
@@ -251,12 +277,15 @@ const Index = () => {
                 <StatCard title="Pendente" value={totaisDespesas.pendente} icon={CreditCard} subtitle={resumoPendente} />
               </div>
 
+              <SaldoMensalPanel resumo={resumoMensal} mesFiltro={mesFiltro} />
+
               <FluxoCaixaPanel
-                caixa={caixaState}
+                caixa={caixaSemDuplicados}
                 despesas={despesasFiltradas}
-                recorrentes={recorrentesFiltradas}
+                recorrentes={sheetData?.recorrentes ?? []}
                 mesFiltro={mesFiltro}
               />
+
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DespesasMensaisChart despesas={despesasFiltradas} />
@@ -280,10 +309,11 @@ const Index = () => {
 
             {/* ===== ABA CAIXA ===== */}
             <TabsContent value="caixa" className="space-y-6">
+              <SaldoMensalPanel resumo={resumoMensal} mesFiltro={mesFiltro} />
               <FluxoCaixaPanel
-                caixa={caixaState}
+                caixa={caixaSemDuplicados}
                 despesas={despesasFiltradas}
-                recorrentes={recorrentesFiltradas}
+                recorrentes={sheetData?.recorrentes ?? []}
                 mesFiltro={mesFiltro}
               />
               <AIInsightsPanel
@@ -293,6 +323,12 @@ const Index = () => {
                 caixa={caixaState}
               />
             </TabsContent>
+
+            {/* ===== ABA LANÇAMENTOS ===== */}
+            <TabsContent value="lancamentos" className="space-y-6">
+              <LancamentosTable lancamentos={lancamentosFiltrados} />
+            </TabsContent>
+
 
             {/* ===== ABA DESPESAS ===== */}
             <TabsContent value="despesas" className="space-y-6">

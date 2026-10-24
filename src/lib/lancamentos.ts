@@ -64,8 +64,10 @@ export const buildLancamentos = (
     });
   });
 
+  const despesaPorMesItem = new Set(despesas.map((d) => `${d.mesNum}|${norm(d.item)}`));
   recorrentes.forEach((r, i) => {
     for (let m = 1; m <= (r.qntMes || 12); m++) {
+      if (despesaPorMesItem.has(`${m}|${norm(r.item)}`)) continue; // já está em Despesas
       lancamentos.push({
         id: `rec-${i}-${m}`,
         data: mesNome(m),
